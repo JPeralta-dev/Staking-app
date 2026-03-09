@@ -3,24 +3,15 @@
 
 pragma solidity 0.8.28;
 
-import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
-contract StakingApp is Ownable {
-    //variables
+contract StakingToken is ERC20 {
+    constructor(
+        string memory name_,
+        string memory symbol_
+    ) ERC20(name_, symbol_) {}
 
-    // 1. StakingToken address cuando inicialicemos necesitamos saber que token recibimos
-    address public stakingToken;
-    // 2. Admin con Ownabl
-
-    // modificadores
-
-    // eventos
-
-    constructor(address stakingToken_, address owner_) Ownable(owner_) {
-        stakingToken = stakingToken_;
+    function mint(uint256 amount_) external {
+        _mint(msg.sender, amount_);
     }
-
-    // funciones externas
-
-    // funciones internas
 }
