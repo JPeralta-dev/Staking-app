@@ -9,6 +9,8 @@ import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 error NotIsValueAcceptError();
 error UserNotAlredyError();
+error InsufficientBalance();
+
 contract StakingApp is Ownable {
     //variables
 
@@ -20,10 +22,15 @@ contract StakingApp is Ownable {
     // 2. Admin con Ownabl
 
     // modificadores
+    modifier checkBalance(uint256 amount_) {
+        if (balances[msg.sender] < amount_) revert InsufficientBalance();
+        _;
+    }
 
     // eventos
     event ChangeStakingPeriod(uint256 newStakingPeriod_);
     event DepositTokens(address userAddress_, uint256 depositAmount_);
+    event WitdrawTokens(address userAddress_);
     constructor(
         address stakingToken_,
         address owner_,
@@ -56,7 +63,9 @@ contract StakingApp is Ownable {
         emit DepositTokens(msg.sender, tokenAmountToDeposit_);
     }
     // WITHDRAW
-
+    function witdrawTokens() external {
+        emit WitdrawTokens(msg.sender);
+    }
     // CLAIM REWARDS
 
     // funciones externas
