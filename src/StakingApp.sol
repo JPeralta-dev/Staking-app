@@ -10,6 +10,8 @@ import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 error NotIsValueAcceptError();
 error UserNotAlredyError();
 error InsufficientBalance();
+error NeedToWaitRewardError();
+error TransferFailed();
 
 contract StakingApp is Ownable {
     //variables
@@ -18,12 +20,15 @@ contract StakingApp is Ownable {
     address public stakingToken;
     uint256 public stakingPeriod;
     uint256 public fixedStakingAmount;
+    uint256 public rewardPerPeriod;
     mapping(address => uint256) balances;
+    mapping(address => uint256) publicTime;
     // 2. Admin con Ownabl
 
     // modificadores
-    modifier checkBalance(uint256 amount_) {
-        if (balances[msg.sender] < amount_) revert InsufficientBalance();
+    modifier checkBalance() {
+        if (balances[msg.sender] < fixedStakingAmount)
+            revert InsufficientBalance();
         _;
     }
 
@@ -35,11 +40,13 @@ contract StakingApp is Ownable {
         address stakingToken_,
         address owner_,
         uint256 stakingPeriod_,
-        uint256 fixedStakingAmount_
+        uint256 fixedStakingAmount_,
+        uint256 rewardPeriod_
     ) Ownable(owner_) {
         stakingToken = stakingToken_;
         stakingPeriod = stakingPeriod_;
         fixedStakingAmount = fixedStakingAmount_;
+        rewardPerPeriod = rewardPeriod_;
     }
 
     function changeStakingPeriod(uint256 newStakingPeriod_) external onlyOwner {
@@ -60,15 +67,28 @@ contract StakingApp is Ownable {
             tokenAmountToDeposit_
         );
         balances[msg.sender] += tokenAmountToDeposit_;
+        publicTime[msg.sender] = block.timestamp;
         emit DepositTokens(msg.sender, tokenAmountToDeposit_);
     }
     // WITHDRAW
     function witdrawTokens() external {
+        uint256 userBalance_ = balances[msg.sender];
+        balances[msg.sender] -= userBalance_;
         emit WitdrawTokens(msg.sender);
+        IERC20(stakingToken).transfer(msg.sender, userBalance_);
     }
     // CLAIM REWARDS
+    function claimRewards() external checkBalance {
+        // 1. check balance
 
-    // funciones externas
+        // 2. calculate reward amount
+        uint256 elapsePeriod_ = block.timestamp - publicTime[msg.sender];
+        if (elapsePeriod_ <= stakingPeriod) revert NeedToWaitRewardError();
+        // 3. update state
+        publicTime[msg.sender] = block.timestamp;
 
-    // funciones internas
+        // 4. Tranfer Reward
+        (bool success, ) = msg.sender.call{value: rewardPerPeriod}("");
+        if (success == false) revert TransferFailed();
+    }
 }
