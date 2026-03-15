@@ -22,7 +22,8 @@ contract StakingApp is Ownable {
     uint256 public fixedStakingAmount;
     uint256 public rewardPerPeriod;
     mapping(address => uint256) balances;
-    mapping(address => uint256) publicTime;
+    mapping(address => uint256) publicTime; // tiempo para que pueda vovler a hacer reclamacon de tokens
+
     // 2. Admin con Ownabl
 
     // modificadores
@@ -36,6 +37,7 @@ contract StakingApp is Ownable {
     event ChangeStakingPeriod(uint256 newStakingPeriod_);
     event DepositTokens(address userAddress_, uint256 depositAmount_);
     event WitdrawTokens(address userAddress_);
+    event EtherReceived(uint256 amount_);
     constructor(
         address stakingToken_,
         address owner_,
@@ -90,5 +92,9 @@ contract StakingApp is Ownable {
         // 4. Tranfer Reward
         (bool success, ) = msg.sender.call{value: rewardPerPeriod}("");
         if (success == false) revert TransferFailed();
+    }
+
+    receive() external payable onlyOwner {
+        emit EtherReceived(msg.value);
     }
 }
