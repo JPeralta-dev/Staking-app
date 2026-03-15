@@ -27,9 +27,14 @@ contract StakingApp is Ownable {
     // 2. Admin con Ownabl
 
     // modificadores
-    modifier checkBalance() {
+    modifier checkClaimRewards() {
         if (balances[msg.sender] < fixedStakingAmount)
             revert InsufficientBalance();
+        _;
+    }
+
+    modifier checkBalance() {
+        if (balances[msg.sender] <= 0) revert InsufficientBalance();
         _;
     }
 
@@ -73,19 +78,19 @@ contract StakingApp is Ownable {
         emit DepositTokens(msg.sender, tokenAmountToDeposit_);
     }
     // WITHDRAW
-    function witdrawTokens() external {
+    function witdrawTokens() external checkBalance {
         uint256 userBalance_ = balances[msg.sender];
         balances[msg.sender] -= userBalance_;
         emit WitdrawTokens(msg.sender);
         IERC20(stakingToken).transfer(msg.sender, userBalance_);
     }
     // CLAIM REWARDS
-    function claimRewards() external checkBalance {
+    function claimRewards() external checkClaimRewards {
         // 1. check balance
 
         // 2. calculate reward amount
         uint256 elapsePeriod_ = block.timestamp - publicTime[msg.sender];
-        if (elapsePeriod_ <= stakingPeriod) revert NeedToWaitRewardError();
+        if (elapsePeriod_ < stakingPeriod) revert NeedToWaitRewardError();
         // 3. update state
         publicTime[msg.sender] = block.timestamp;
 
@@ -94,7 +99,7 @@ contract StakingApp is Ownable {
         if (success == false) revert TransferFailed();
     }
 
-    receive() external payable onlyOwner {
+    receive() external payable {
         emit EtherReceived(msg.value);
     }
 }
