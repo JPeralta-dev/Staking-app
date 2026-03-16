@@ -20,9 +20,15 @@ contract StakingApp is Ownable {
     address public stakingToken;
     uint256 public stakingPeriod;
     uint256 public fixedStakingAmount;
-    uint256 public rewardPerPeriod;
+    uint256 public rewardPerPeriod; // se va de remplazpo
+    uint256 rewardRate; //recompensa distribuida por segundo 10 tokens por segundos
+    uint256 public lastUpdateTime; // -> cuanto paso de la ultima vez que calcule mi recomenpsa
+    uint256 public rewardPerTokenStored; // -> recomepsa por token guardao 0.1 token distribuido por segundo
+    uint256 public tokenStored; // total de tokens en el contrato
     mapping(address => uint256) balances;
     mapping(address => uint256) publicTime; // tiempo para que pueda vovler a hacer reclamacon de tokens
+    mapping(address => uint256) reward;
+    mapping(address => uint256) userRewardPerTokenPaid;
 
     // 2. Admin con Ownabl
 
@@ -64,6 +70,7 @@ contract StakingApp is Ownable {
     // DEPOSIT TOKEN
 
     function depositTokens(uint256 tokenAmountToDeposit_) external {
+        updateReward();
         if (tokenAmountToDeposit_ != fixedStakingAmount)
             revert NotIsValueAcceptError();
         if (balances[msg.sender] != 0) revert UserNotAlredyError();
@@ -74,13 +81,16 @@ contract StakingApp is Ownable {
             tokenAmountToDeposit_
         );
         balances[msg.sender] += tokenAmountToDeposit_;
+        tokenStored += tokenAmountToDeposit_;
         publicTime[msg.sender] = block.timestamp;
         emit DepositTokens(msg.sender, tokenAmountToDeposit_);
     }
     // WITHDRAW
     function witdrawTokens() external checkBalance {
+        updateReward();
         uint256 userBalance_ = balances[msg.sender];
         balances[msg.sender] -= userBalance_;
+        tokenStored -= userBalance_;
         emit WitdrawTokens(msg.sender);
         IERC20(stakingToken).transfer(msg.sender, userBalance_);
     }
@@ -99,7 +109,22 @@ contract StakingApp is Ownable {
         if (success == false) revert TransferFailed();
     }
 
+    // claim reward per seconds
+    function claimRewardsPerSeconds() public view returns (uint256) {
+        if (tokenStored == 0) {
+            return rewardPerTokenStored;
+        }
+
+        return
+            rewardPerTokenStored +
+            ((block.timestamp - lastUpdateTime) * rewardRate * 1e18) /
+            tokenStored;
+    }
     receive() external payable {
         emit EtherReceived(msg.value);
+    }
+    function updateReward() internal {
+        rewardPerTokenStored = claimRewardsPerSeconds();
+        lastUpdateTime = block.timestamp;
     }
 }
