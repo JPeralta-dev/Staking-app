@@ -30,6 +30,19 @@ contract StakingApp is Ownable {
     mapping(address => uint256) reward;
     mapping(address => uint256) userRewardPerTokenPaid;
 
+    constructor(
+        address stakingToken_,
+        address owner_,
+        uint256 stakingPeriod_,
+        uint256 fixedStakingAmount_,
+        uint256 rewardPeriod_
+    ) Ownable(owner_) {
+        stakingToken = stakingToken_;
+        stakingPeriod = stakingPeriod_;
+        fixedStakingAmount = fixedStakingAmount_;
+        rewardPerPeriod = rewardPeriod_;
+    }
+
     // 2. Admin con Ownabl
 
     // modificadores
@@ -44,23 +57,22 @@ contract StakingApp is Ownable {
         _;
     }
 
+    modifier updateRewardEarnad(address user_) {
+        rewardPerTokenStored = claimRewardsPerSeconds();
+        lastUpdateTime = block.timestamp;
+
+        if (user_ != address(0)) {
+            reward[user_] = earned(user_);
+            userRewardPerTokenPaid[user_] = rewardPerTokenStored;
+        }
+        _;
+    }
+
     // eventos
     event ChangeStakingPeriod(uint256 newStakingPeriod_);
     event DepositTokens(address userAddress_, uint256 depositAmount_);
     event WitdrawTokens(address userAddress_);
     event EtherReceived(uint256 amount_);
-    constructor(
-        address stakingToken_,
-        address owner_,
-        uint256 stakingPeriod_,
-        uint256 fixedStakingAmount_,
-        uint256 rewardPeriod_
-    ) Ownable(owner_) {
-        stakingToken = stakingToken_;
-        stakingPeriod = stakingPeriod_;
-        fixedStakingAmount = fixedStakingAmount_;
-        rewardPerPeriod = rewardPeriod_;
-    }
 
     function changeStakingPeriod(uint256 newStakingPeriod_) external onlyOwner {
         stakingPeriod = newStakingPeriod_;
@@ -69,8 +81,9 @@ contract StakingApp is Ownable {
 
     // DEPOSIT TOKEN
 
-    function depositTokens(uint256 tokenAmountToDeposit_) external {
-        updateReward();
+    function depositTokens(
+        uint256 tokenAmountToDeposit_
+    ) external updateRewardEarnad(msg.sender) {
         if (tokenAmountToDeposit_ != fixedStakingAmount)
             revert NotIsValueAcceptError();
         if (balances[msg.sender] != 0) revert UserNotAlredyError();
@@ -86,8 +99,11 @@ contract StakingApp is Ownable {
         emit DepositTokens(msg.sender, tokenAmountToDeposit_);
     }
     // WITHDRAW
-    function witdrawTokens() external checkBalance {
-        updateReward();
+    function witdrawTokens()
+        external
+        checkBalance
+        updateRewardEarnad(msg.sender)
+    {
         uint256 userBalance_ = balances[msg.sender];
         balances[msg.sender] -= userBalance_;
         tokenStored -= userBalance_;
@@ -95,7 +111,11 @@ contract StakingApp is Ownable {
         IERC20(stakingToken).transfer(msg.sender, userBalance_);
     }
     // CLAIM REWARDS
-    function claimRewards() external checkClaimRewards {
+    function claimRewards()
+        external
+        checkClaimRewards
+        updateRewardEarnad(msg.sender)
+    {
         // 1. check balance
 
         // 2. calculate reward amount
@@ -120,11 +140,17 @@ contract StakingApp is Ownable {
             ((block.timestamp - lastUpdateTime) * rewardRate * 1e18) /
             tokenStored;
     }
+
+    function earned(address user_) public view returns (uint256) {
+        // tremenda vaina que apenas estoy entendiendo
+        return ((balances[user_] *
+            (claimRewardsPerSeconds() - userRewardPerTokenPaid[user_])) /
+            1e18 +
+            reward[user_]);
+    }
+
     receive() external payable {
         emit EtherReceived(msg.value);
     }
-    function updateReward() internal {
-        rewardPerTokenStored = claimRewardsPerSeconds();
-        lastUpdateTime = block.timestamp;
-    }
+    function updateReward() internal {}
 }
