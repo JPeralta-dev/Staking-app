@@ -149,6 +149,10 @@ contract StakingApp is Ownable {
             reward[user_]);
     }
 
+    function getStakingPeriod() public view returns (uint256) {
+        return stakingPeriod;
+    }
+
     receive() external payable {
         emit EtherReceived(msg.value);
     }
