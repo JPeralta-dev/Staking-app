@@ -56,6 +56,8 @@ contract StakingTest is Test {
     }
 
     function testRecivedEtherStakingTokenCorrectly() public {
+        vm.startPrank(admin);
+        vm.deal(admin, 1 ether);
         uint256 valueEther = 1 ether;
         uint256 balanceBefore = address(stakingApp).balance;
         (bool success, ) = address(stakingApp).call{value: valueEther}("");
@@ -63,5 +65,6 @@ contract StakingTest is Test {
         require(success, "transfer failed");
 
         assert(balanceAfter - balanceBefore == valueEther);
+        vm.stopPrank();
     }
 }

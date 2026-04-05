@@ -18,32 +18,34 @@ contract StakingApp is Ownable {
 
     // 1. StakingToken address cuando inicialicemos necesitamos saber que token recibimos
     address public stakingToken;
-    uint256 public stakingPeriod;
+    uint256 public stakingPeriod; // esto es el limite de tiempo antes de reclamar es decir luego de la ultima recompesa reclamada tiene que esperar tantos segundo
     uint256 public fixedStakingAmount;
     uint256 public rewardPerPeriod; // se va de remplazpo
-    uint256 rewardRate; //recompensa distribuida por segundo 10 tokens por segundos
+    uint256 rewardRate; //recompensa distribuida por segundo, 10 tokens por segundos
     uint256 public lastUpdateTime; // -> cuanto paso de la ultima vez que calcule mi recomenpsa
     uint256 public rewardPerTokenStored; // -> recomepsa por token guardao 0.1 token distribuido por segundo
     uint256 public tokenStored; // total de tokens en el contrato
-    mapping(address => uint256) balances;
-    mapping(address => uint256) publicTime; // tiempo para que pueda vovler a hacer reclamacon de tokens
-    mapping(address => uint256) reward;
-    mapping(address => uint256) userRewardPerTokenPaid;
+    mapping(address => uint256) balances; // -> controla el balance del usuario abonado
+    mapping(address => uint256) publicTime; // realmente es el para calcular el tiempo que ha pasado para cada uno de los movimientos
+    mapping(address => uint256) reward; // --> almacena la recomensa que acumula el usuario
+    mapping(address => uint256) userRewardPerTokenPaid; //--> guarda hasta donde se pago
 
     constructor(
         address stakingToken_,
         address owner_,
         uint256 stakingPeriod_,
         uint256 fixedStakingAmount_,
-        uint256 rewardPeriod_
+        uint256 rewardPeriod_,
+        uint256 rewardRate_
     ) Ownable(owner_) {
         stakingToken = stakingToken_;
         stakingPeriod = stakingPeriod_;
         fixedStakingAmount = fixedStakingAmount_;
         rewardPerPeriod = rewardPeriod_;
+        rewardRate_ = rewardRate;
     }
 
-    // 2. Admin con Ownabl
+    // 2. Admin con Ownable
 
     // modificadores
     modifier checkClaimRewards() {
@@ -86,7 +88,7 @@ contract StakingApp is Ownable {
     ) external updateRewardEarnad(msg.sender) {
         if (tokenAmountToDeposit_ != fixedStakingAmount)
             revert NotIsValueAcceptError();
-        if (balances[msg.sender] != 0) revert UserNotAlredyError();
+
         // TranferFrom (Adonde voy a quitar los toknes, a quien se lo envio?, cuanto es la vaina)
         IERC20(stakingToken).transferFrom(
             msg.sender,
@@ -123,9 +125,10 @@ contract StakingApp is Ownable {
         if (elapsePeriod_ < stakingPeriod) revert NeedToWaitRewardError();
         // 3. update state
         publicTime[msg.sender] = block.timestamp;
-
+        uint256 rewardUser = reward[msg.sender];
+        reward[msg.sender] -= rewardUser;
         // 4. Tranfer Reward
-        (bool success, ) = msg.sender.call{value: rewardPerPeriod}("");
+        (bool success, ) = msg.sender.call{value: rewardUser}("");
         if (success == false) revert TransferFailed();
     }
 
