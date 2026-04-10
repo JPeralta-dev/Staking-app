@@ -13,6 +13,7 @@ contract StakingTest is Test {
     address admin = vm.addr(1);
 
     uint256 newStakingPeriodRandom = vm.randomUint(1, 100);
+    uint256 rewardRate = 1;
 
     // viene el staking
     StakingApp stakingApp;
@@ -27,7 +28,8 @@ contract StakingTest is Test {
             admin,
             stakingPeriod_,
             fixedStakingAmount_,
-            rewardPeriod_
+            rewardPeriod_,
+            rewardRate
         );
     }
 
@@ -65,6 +67,16 @@ contract StakingTest is Test {
         require(success, "transfer failed");
 
         assert(balanceAfter - balanceBefore == valueEther);
+        vm.stopPrank();
+    }
+
+    function testDepositEtherStakingTokeCorrectly() public {
+        vm.startPrank(vm.addr(3));
+        vm.deal(vm.addr(3), 100 ether);
+
+        // dentro de aca se ejecuta la primera wallet al smtContract
+        // envia datos y debemos analizar paso a paso como se calcula
+        // cada reward pero simulamos primero con una waller y luego con mas
         vm.stopPrank();
     }
 }
