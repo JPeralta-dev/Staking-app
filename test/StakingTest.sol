@@ -18,7 +18,7 @@ contract StakingTest is Test {
     // viene el staking
     StakingApp stakingApp;
     uint256 stakingPeriod_ = 2;
-    uint256 fixedStakingAmount_ = 3;
+    uint256 fixedStakingAmount_ = 1;
     uint256 rewardPeriod_ = 1;
 
     function setUp() public {
@@ -76,7 +76,28 @@ contract StakingTest is Test {
 
         // dentro de aca se ejecuta la primera wallet al smtContract
         // envia datos y debemos analizar paso a paso como se calcula
-        // cada reward pero simulamos primero con una waller y luego con mas
+        // cada reward pero simulamos primero con una waller y luego con m  as
+        vm.stopPrank();
+    }
+
+    function testDepositAndWithdraw() public {
+        vm.startPrank(vm.addr(4));
+        // 1. darle tokens al usuario
+        stakingToken.mint(1 ether);
+
+        // 2. usuario aprueba el contrato
+
+        stakingToken.approve(address(stakingApp), 1);
+        // 3. usuario deposita
+
+        stakingApp.depositTokens(1);
+
+        // 4. pasa el tiempo
+        vm.warp(block.timestamp + 10);
+        // 5. usuario retira
+
+        stakingApp.witdrawTokens();
+
         vm.stopPrank();
     }
 }
