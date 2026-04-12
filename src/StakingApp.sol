@@ -20,7 +20,6 @@ contract StakingApp is Ownable {
     address public stakingToken;
     uint256 public stakingPeriod; // esto es el limite de tiempo antes de reclamar es decir luego de la ultima recompesa reclamada tiene que esperar tantos segundo
     uint256 public fixedStakingAmount;
-    uint256 public rewardPerPeriod; // se va de remplazpo
     uint256 rewardRate; //recompensa distribuida por segundo, 10 tokens por segundos
     uint256 public lastUpdateTime; // -> cuanto paso de la ultima vez que calcule mi recomenpsa
     uint256 public rewardPerTokenStored; // -> recomepsa por token guardao 0.1 token distribuido por segundo
@@ -35,14 +34,12 @@ contract StakingApp is Ownable {
         address owner_,
         uint256 stakingPeriod_,
         uint256 fixedStakingAmount_,
-        uint256 rewardPeriod_,
         uint256 rewardRate_
     ) Ownable(owner_) {
         stakingToken = stakingToken_;
         stakingPeriod = stakingPeriod_;
         fixedStakingAmount = fixedStakingAmount_;
-        rewardPerPeriod = rewardPeriod_;
-        rewardRate_ = rewardRate;
+        rewardRate = rewardRate_;
     }
 
     // 2. Admin con Ownable
@@ -160,4 +157,8 @@ contract StakingApp is Ownable {
         emit EtherReceived(msg.value);
     }
     function updateReward() internal {}
+
+    function getBalanceUser() public view returns (uint256) {
+        return balances[msg.sender];
+    }
 }

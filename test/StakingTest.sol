@@ -13,13 +13,12 @@ contract StakingTest is Test {
     address admin = vm.addr(1);
 
     uint256 newStakingPeriodRandom = vm.randomUint(1, 100);
-    uint256 rewardRate = 1;
+    uint256 rewardRate = 1 ether;
 
     // viene el staking
     StakingApp stakingApp;
     uint256 stakingPeriod_ = 2;
-    uint256 fixedStakingAmount_ = 1;
-    uint256 rewardPeriod_ = 1;
+    uint256 fixedStakingAmount_ = 1 ether;
 
     function setUp() public {
         stakingToken = new StakingToken(name_, symbol_);
@@ -28,7 +27,6 @@ contract StakingTest is Test {
             admin,
             stakingPeriod_,
             fixedStakingAmount_,
-            rewardPeriod_,
             rewardRate
         );
     }
@@ -85,18 +83,31 @@ contract StakingTest is Test {
         // 1. darle tokens al usuario
         stakingToken.mint(1 ether);
 
-        // 2. usuario aprueba el contrato
+        uint256 balanceBefore_ = IERC20(address(stakingToken)).balanceOf(
+            vm.addr(4)
+        );
 
-        stakingToken.approve(address(stakingApp), 1);
+        // 2. usuario aprueba el contrato
+        stakingToken.approve(address(stakingApp), 1 ether);
         // 3. usuario deposita
 
-        stakingApp.depositTokens(1);
+        stakingApp.depositTokens(1 ether);
 
         // 4. pasa el tiempo
-        vm.warp(block.timestamp + 10);
+        vm.warp(block.timestamp + 100);
         // 5. usuario retira
 
+        uint256 rewardStored_ = stakingApp.earned(vm.addr(4));
+
         stakingApp.witdrawTokens();
+
+        console.log(rewardStored_);
+        uint balanceAfter_ = IERC20(address(stakingToken)).balanceOf(
+            vm.addr(4)
+        );
+
+        assert(balanceAfter_ == balanceBefore_);
+        assertEq(stakingApp.getBalanceUser(), 0); // una mejor opcion
 
         vm.stopPrank();
     }
