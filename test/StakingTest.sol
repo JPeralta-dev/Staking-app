@@ -101,13 +101,36 @@ contract StakingTest is Test {
 
         stakingApp.witdrawTokens();
 
-        console.log(rewardStored_);
         uint balanceAfter_ = IERC20(address(stakingToken)).balanceOf(
             vm.addr(4)
         );
 
         assert(balanceAfter_ == balanceBefore_);
         assertEq(stakingApp.getBalanceUser(), 0); // una mejor opcion
+
+        vm.stopPrank();
+    }
+
+    function testDepositAndClaimRewardPerTwoWallet() {
+        // 1. el usuario uno hace lo pertinente y deposita una cantidad de 1 token
+        vm.startPrank(vm.addr(3));
+        stakingToken.mint(1 ether);
+        stakingToken.approve(address(stakingApp), 1 ether);
+        stakingApp.depositTokens(1 ether);
+
+        vm.stopPrank();
+        // 2. usuario 2 hace lo mimos y deposita 1 pero 60 segndos luego del primero
+        vm.warp(block.timestamp + 60);
+        vm.startPrank(vm.addr(4));
+        stakingToken.mint(1 ether);
+        stakingToken.approve(address(stakingApp), 1 ether);
+        stakingApp.depositTokens(1 ether);
+        vm.stopPrank();
+
+        // el usuario 2 ejecuta el claim
+        vm.warp(block.timestamp + 100);
+        vm.startPrank(vm.addr(4));
+        stakingApp.claimRewards();
 
         vm.stopPrank();
     }

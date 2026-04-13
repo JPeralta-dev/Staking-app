@@ -24,6 +24,7 @@ contract StakingApp is Ownable {
     uint256 public lastUpdateTime; // -> cuanto paso de la ultima vez que calcule mi recomenpsa
     uint256 public rewardPerTokenStored; // -> recomepsa por token guardao 0.1 token distribuido por segundo
     uint256 public tokenStored; // total de tokens en el contrato
+
     mapping(address => uint256) balances; // -> controla el balance del usuario abonado
     mapping(address => uint256) publicTime; // realmente es el para calcular el tiempo que ha pasado para cada uno de los movimientos
     mapping(address => uint256) reward; // --> almacena la recomensa que acumula el usuario
