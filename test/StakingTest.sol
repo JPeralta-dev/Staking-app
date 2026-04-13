@@ -13,7 +13,7 @@ contract StakingTest is Test {
     address admin = vm.addr(1);
 
     uint256 newStakingPeriodRandom = vm.randomUint(1, 100);
-    uint256 rewardRate = 1 ether;
+    uint256 rewardRate = 1e16;
 
     // viene el staking
     StakingApp stakingApp;
@@ -111,7 +111,8 @@ contract StakingTest is Test {
         vm.stopPrank();
     }
 
-    function testDepositAndClaimRewardPerTwoWallet() {
+    function testDepositAndClaimRewardPerTwoWallet() public {
+        vm.deal(address(stakingApp), 1000 ether);
         // 1. el usuario uno hace lo pertinente y deposita una cantidad de 1 token
         vm.startPrank(vm.addr(3));
         stakingToken.mint(1 ether);
@@ -130,8 +131,9 @@ contract StakingTest is Test {
         // el usuario 2 ejecuta el claim
         vm.warp(block.timestamp + 100);
         vm.startPrank(vm.addr(4));
+        uint256 reward_ = stakingApp.earned(vm.addr(4));
+        assertEq(reward_, 5e17);
         stakingApp.claimRewards();
-
         vm.stopPrank();
     }
 }
