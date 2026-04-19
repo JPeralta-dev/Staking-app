@@ -1,5 +1,4 @@
-//SPDX-License-1dentifier: LGPL-3.0-onlY
-//SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
 import "forge-std/Test.sol";
@@ -15,7 +14,6 @@ contract StakingTest is Test {
     uint256 newStakingPeriodRandom = vm.randomUint(1, 100);
     uint256 rewardRate = 1e16;
 
-    // viene el staking
     StakingApp stakingApp;
     uint256 stakingPeriod_ = 2;
     uint256 fixedStakingAmount_ = 1 ether;
@@ -31,10 +29,11 @@ contract StakingTest is Test {
         );
     }
 
+    /// @notice Prueba que solo el owner puede cambiar el periodo de staking.
     function testChangeStakingPeriodCorretly() public {
         vm.startPrank(admin);
 
-        uint256 newStakingPeriod_ = newStakingPeriodRandom; // primer error y hardcodear un numkero
+        uint256 newStakingPeriod_ = newStakingPeriodRandom;
 
         stakingApp.changeStakingPeriod(newStakingPeriod_);
 
@@ -43,84 +42,81 @@ contract StakingTest is Test {
         vm.stopPrank();
     }
 
+    /// @notice Prueba que una cuenta no autorizada no puede cambiar el periodo.
     function testChangeStakingPeriodFailed() public {
         vm.startPrank(vm.addr(2));
 
-        uint256 newStakingPeriod_ = newStakingPeriodRandom; // primer error y hardcodear un numkero
+        uint256 newStakingPeriod_ = newStakingPeriodRandom;
 
         vm.expectRevert();
-
         stakingApp.changeStakingPeriod(newStakingPeriod_);
 
         vm.stopPrank();
     }
 
+    /// @notice Verifica que el contrato acepta transferencias ETH directas.
     function testRecivedEtherStakingTokenCorrectly() public {
         vm.startPrank(admin);
         vm.deal(admin, 1 ether);
+
         uint256 valueEther = 1 ether;
         uint256 balanceBefore = address(stakingApp).balance;
+
         (bool success, ) = address(stakingApp).call{value: valueEther}("");
-        uint256 balanceAfter = address(stakingApp).balance;
         require(success, "transfer failed");
 
+        uint256 balanceAfter = address(stakingApp).balance;
         assert(balanceAfter - balanceBefore == valueEther);
+
         vm.stopPrank();
     }
 
-    function testDepositEtherStakingTokeCorrectly() public {
-        vm.startPrank(vm.addr(3));
-        vm.deal(vm.addr(3), 100 ether);
-
-        // dentro de aca se ejecuta la primera wallet al smtContract
-        // envia datos y debemos analizar paso a paso como se calcula
-        // cada reward pero simulamos primero con una waller y luego con m  as
-        vm.stopPrank();
-    }
-
+    /// @notice Prueba de depósito y retiro de tokens sin reclamar recompensas.
     function testDepositAndWithdraw() public {
         vm.startPrank(vm.addr(4));
-        // 1. darle tokens al usuario
+
+        // 1. Mint de tokens para el usuario.
         stakingToken.mint(1 ether);
 
         uint256 balanceBefore_ = IERC20(address(stakingToken)).balanceOf(
             vm.addr(4)
         );
 
-        // 2. usuario aprueba el contrato
+        // 2. El usuario aprueba el contrato para gastar su token.
         stakingToken.approve(address(stakingApp), 1 ether);
-        // 3. usuario deposita
 
+        // 3. Deposita el monto fijo de staking.
         stakingApp.depositTokens(1 ether);
 
-        // 4. pasa el tiempo
+        // 4. Simula el paso del tiempo.
         vm.warp(block.timestamp + 100);
-        // 5. usuario retira
 
-        uint256 rewardStored_ = stakingApp.earned(vm.addr(4));
-
+        // 5. Retira los tokens stakeados.
         stakingApp.witdrawTokens();
 
-        uint balanceAfter_ = IERC20(address(stakingToken)).balanceOf(
+        uint256 balanceAfter_ = IERC20(address(stakingToken)).balanceOf(
             vm.addr(4)
         );
 
         assert(balanceAfter_ == balanceBefore_);
-        assertEq(stakingApp.getBalanceUser(), 0); // una mejor opcion
+        assertEq(stakingApp.getBalanceUser(), 0);
 
         vm.stopPrank();
     }
 
+    /// @notice Prueba que dos usuarios comparten el reward proporcional al tiempo stakeado.
     function testDepositAndClaimRewardPerTwoWallet() public {
+        // Asegura ETH en el contrato para pagar la recompensa.
         vm.deal(address(stakingApp), 1000 ether);
-        // 1. el usuario uno hace lo pertinente y deposita una cantidad de 1 token
+
+        // Usuario 1 deposita primero.
         vm.startPrank(vm.addr(3));
         stakingToken.mint(1 ether);
         stakingToken.approve(address(stakingApp), 1 ether);
         stakingApp.depositTokens(1 ether);
-
         vm.stopPrank();
-        // 2. usuario 2 hace lo mimos y deposita 1 pero 60 segndos luego del primero
+
+        // Avanza 60 segundos y usuario 2 deposita.
         vm.warp(block.timestamp + 60);
         vm.startPrank(vm.addr(4));
         stakingToken.mint(1 ether);
@@ -128,11 +124,13 @@ contract StakingTest is Test {
         stakingApp.depositTokens(1 ether);
         vm.stopPrank();
 
-        // el usuario 2 ejecuta el claim
+        // Avanza 100 segundos y el usuario 2 reclama su recompensa.
         vm.warp(block.timestamp + 100);
         vm.startPrank(vm.addr(4));
+
         uint256 reward_ = stakingApp.earned(vm.addr(4));
         assertEq(reward_, 5e17);
+
         stakingApp.claimRewards();
         vm.stopPrank();
     }
