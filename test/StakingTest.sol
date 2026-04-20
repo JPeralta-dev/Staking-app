@@ -131,7 +131,13 @@ contract StakingTest is Test {
         uint256 reward_ = stakingApp.earned(vm.addr(4));
         assertEq(reward_, 5e17);
 
+        uint256 balanceBefore = vm.addr(4).balance;
+
         stakingApp.claimRewards();
+
+        uint256 balanceAfter = vm.addr(4).balance;
+
+        assertEq(balanceAfter - balanceBefore, reward_);
         vm.stopPrank();
     }
 
@@ -171,6 +177,81 @@ contract StakingTest is Test {
         stakingToken.mint(fixedStakingAmount_);
         stakingToken.approve(address(stakingApp), fixedStakingAmount_);
         stakingApp.depositTokens(fixedStakingAmount_);
+
+        vm.expectRevert();
+        stakingApp.claimRewards();
+
+        vm.stopPrank();
+    }
+
+    function testClaimResetReward() public {
+        vm.deal(address(stakingApp), 1000 ether);
+        vm.startPrank(vm.addr(3));
+        stakingToken.mint(fixedStakingAmount_);
+        stakingToken.approve(address(stakingApp), fixedStakingAmount_);
+
+        stakingApp.depositTokens(fixedStakingAmount_);
+
+        vm.warp(block.timestamp + 100);
+
+        uint256 rewardBefore = stakingApp.earned(vm.addr(3));
+
+        stakingApp.claimRewards();
+
+        uint256 rewardAfter = stakingApp.earned(vm.addr(3));
+
+        assertEq(rewardAfter, 0);
+
+        vm.stopPrank();
+    }
+
+    function testRewardAccumulatesAfterClaim() public {
+        vm.deal(address(stakingApp), 1000 ether);
+        vm.startPrank(vm.addr(3));
+        stakingToken.mint(fixedStakingAmount_);
+        stakingToken.approve(address(stakingApp), fixedStakingAmount_);
+
+        stakingApp.depositTokens(fixedStakingAmount_);
+
+        vm.warp(block.timestamp + 100);
+
+        uint256 rewardBefore = stakingApp.earned(vm.addr(3));
+
+        stakingApp.claimRewards();
+
+        vm.warp(block.timestamp + 100);
+
+        uint256 rewardAfter = stakingApp.earned(vm.addr(3));
+
+        assertGt(rewardAfter, 0);
+
+        vm.stopPrank();
+    }
+
+    function testMultipleDepositSamUser() public {
+        vm.deal(address(stakingApp), 1000 ether);
+        vm.startPrank(vm.addr(3));
+        stakingToken.mint(2 ether);
+        stakingToken.approve(address(stakingApp), 2 ether);
+
+        stakingApp.depositTokens(fixedStakingAmount_);
+        stakingApp.depositTokens(fixedStakingAmount_);
+
+        assertEq(stakingApp.getBalanceUser(), 2 ether);
+        vm.stopPrank();
+    }
+
+    function testWithdrawRemovesRewardEligibility() public {
+        vm.deal(address(stakingApp), 1000 ether);
+        vm.startPrank(vm.addr(3));
+        stakingToken.mint(fixedStakingAmount_);
+        stakingToken.approve(address(stakingApp), fixedStakingAmount_);
+
+        stakingApp.depositTokens(fixedStakingAmount_);
+
+        vm.warp(block.timestamp + 100);
+
+        stakingApp.witdrawTokens();
 
         vm.expectRevert();
         stakingApp.claimRewards();
