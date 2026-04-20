@@ -134,4 +134,34 @@ contract StakingTest is Test {
         stakingApp.claimRewards();
         vm.stopPrank();
     }
+
+    function testCheckBalancePerUser() public {
+        vm.deal(address(stakingApp), 1000 ether);
+        vm.startPrank(vm.addr(3));
+        stakingToken.mint(fixedStakingAmount_);
+        stakingToken.approve(address(stakingApp), fixedStakingAmount_);
+        stakingApp.depositTokens(fixedStakingAmount_);
+        vm.warp(block.timestamp + 100);
+
+        stakingApp.witdrawTokens();
+
+        vm.warp(block.timestamp + 100);
+
+        vm.expectRevert();
+        stakingApp.witdrawTokens();
+
+        vm.expectRevert();
+        stakingApp.claimRewards();
+
+        vm.stopPrank();
+    }
+
+    function testCheckFixedStakingAmount() public {
+        vm.deal(address(stakingApp), 1000 ether);
+        vm.startPrank(vm.addr(3));
+        stakingToken.mint(2 ether);
+        stakingToken.approve(address(stakingApp), 2 ether);
+        vm.expectRevert();
+        stakingApp.depositTokens(2 ether);
+    }
 }
