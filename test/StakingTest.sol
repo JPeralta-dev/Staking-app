@@ -164,4 +164,17 @@ contract StakingTest is Test {
         vm.expectRevert();
         stakingApp.depositTokens(2 ether);
     }
+
+    function testCheckElapsePeriod() public {
+        vm.deal(address(stakingApp), 1000 ether);
+        vm.startPrank(vm.addr(3));
+        stakingToken.mint(fixedStakingAmount_);
+        stakingToken.approve(address(stakingApp), fixedStakingAmount_);
+        stakingApp.depositTokens(fixedStakingAmount_);
+
+        vm.expectRevert();
+        stakingApp.claimRewards();
+
+        vm.stopPrank();
+    }
 }

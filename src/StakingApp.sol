@@ -148,7 +148,7 @@ contract StakingApp is Ownable {
         updateRewardEarnad(msg.sender)
     {
         uint256 elapsePeriod_ = block.timestamp - publicTime[msg.sender];
-        if (elapsePeriod_ < stakingPeriod) revert NeedToWaitRewardError();
+        if (elapsePeriod_ <= stakingPeriod) revert NeedToWaitRewardError();
 
         publicTime[msg.sender] = block.timestamp;
         uint256 rewardUser = reward[msg.sender];
